@@ -1,28 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import UserLogin from '../views/UserLogin.vue'; // Certifique-se que o caminho está correto
-import GoogleCalendar from '../views/GoogleCalendar.vue';
+import UserLogin from '../views/UserLogin.vue';
 import UserDashboard from '../views/UserDashboard.vue';
+import UserSchedule from '../views/UserSchedule.vue';
+import UserContact from '../views/UserContact.vue';
 
 const routes = [
-    {
-        path: '/',
-        name: 'Login',
-        component: UserLogin,
-    },
-    {
-        path: '/calendar',
-        name: 'GoogleCalendar',
-        component: GoogleCalendar,
-    },
+    { path: '/', name: 'UserLogin', component: UserLogin },
     {
         path: '/dashboard',
         name: 'UserDashboard',
         component: UserDashboard,
+        children: [
+            { path: '/schedule', name: 'UserSchedule', component: UserSchedule },
+            { path: '/contact', name: 'UserContact', component: UserContact },
+        ],
     },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(process.env.BASE_URL),
     routes,
 });
 
