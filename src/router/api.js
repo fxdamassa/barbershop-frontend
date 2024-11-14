@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import UserLogin from '../views/UserLogin.vue';
 import UserDashboard from '../views/UserDashboard.vue';
-import UserSchedule from '../views/UserSchedule.vue';
 import UserContact from '../views/UserContact.vue';
 
 const routes = [
@@ -11,7 +10,11 @@ const routes = [
         name: 'UserDashboard',
         component: UserDashboard,
         children: [
-            { path: '/schedule', name: 'UserSchedule', component: UserSchedule },
+            {
+                path: '/schedule',
+                name: 'UserSchedule',
+                component: () => import('../views/UserSchedule.vue'),
+            },
             { path: '/contact', name: 'UserContact', component: UserContact },
         ],
     },
