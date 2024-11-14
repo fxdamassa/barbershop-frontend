@@ -12,11 +12,6 @@
         <input v-model="event.start" type="datetime-local" class="border rounded w-full px-3 py-2" required />
       </div>
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium">Data e Hora de Término</label>
-        <input v-model="event.end" type="datetime-local" class="border rounded w-full px-3 py-2" required />
-      </div>
-
       <button
           type="submit"
           class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 transition"
@@ -37,14 +32,30 @@ export default {
       event: {
         title: '',
         start: '',
-        end: '',
       },
     };
+  },
+  created() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const authToken = urlParams.get('auth_token');
+    const userName = urlParams.get('user_name');
+
+    if (authToken) {
+      localStorage.setItem('auth_token', authToken); // Armazena o token de autenticação
+    } else {
+      console.warn('Token de autenticação não encontrado.');
+    }
+
+    if (userName) {
+      this.event.title = userName; // Define o nome do usuário como título
+      localStorage.setItem('user_name', userName);
+    } else {
+      console.warn('Nome do usuário não encontrado.');
+    }
   },
   methods: {
     async createEvent() {
       try {
-        // Verifica se o token está disponível
         const token = localStorage.getItem('auth_token');
         if (!token) {
           throw new Error('Token não encontrado. Por favor, faça login.');
@@ -55,11 +66,10 @@ export default {
             {
               summary: this.event.title,
               start: { dateTime: this.event.start, timeZone: 'America/Sao_Paulo' },
-              end: { dateTime: this.event.end, timeZone: 'America/Sao_Paulo' },
             },
             {
               headers: {
-                Authorization: `Bearer ${token}`, // Enviar token no cabeçalho
+                Authorization: `Bearer ${token}`,
               },
             }
         );
@@ -70,7 +80,7 @@ export default {
         console.error('Erro ao criar evento:', error);
         alert('Erro ao criar evento: ' + error.message);
       }
-    },
+    }
   },
 };
 </script>
