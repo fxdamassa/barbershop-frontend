@@ -18,9 +18,16 @@ export default {
   name: 'UserLogin',
   methods: {
     redirectToGoogle() {
-      // Redireciona diretamente para o backend para lidar com a autenticação
       window.location.href = 'http://127.0.0.1:8000/api/google/redirect';
     },
+  },
+  created() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+      localStorage.setItem('auth_token', token);
+      this.$router.push({ name: 'UserDashboard' });
+    }
   },
 };
 </script>
