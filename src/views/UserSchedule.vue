@@ -2,6 +2,7 @@
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Agendar Corte</h1>
     <div class="calendar-container">
+      <!-- Calendário para seleção de data -->
       <vc-calendar
           v-model="selectedDate"
           is-expanded
@@ -11,9 +12,14 @@
           :attributes="calendarAttributes"
       ></vc-calendar>
 
+      <!-- Seleção de horário limitado -->
       <div class="mt-4">
-        <label class="block text-sm font-medium mb-2">Horário</label>
-        <select v-model="selectedTime" class="border rounded w-full px-3 py-2" required>
+        <label class="block text-sm font-medium mb-1">Horário</label>
+        <select
+            v-model="selectedTime"
+            class="border rounded w-full px-2 py-1 text-sm"
+            required
+        >
           <option disabled value="">Selecione o horário</option>
           <option v-for="hour in availableTimes" :key="hour" :value="hour">
             {{ hour }}
@@ -21,6 +27,7 @@
         </select>
       </div>
 
+      <!-- Mostra data e horário selecionados -->
       <div class="mt-4">
         <h2 class="text-lg font-semibold mb-2">Data e Horário Selecionados</h2>
         <p>
@@ -29,6 +36,7 @@
         </p>
       </div>
 
+      <!-- Botão de ação -->
       <button
           @click="scheduleEvent"
           class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 transition"
@@ -39,33 +47,31 @@
   </div>
 </template>
 
-#### JavaScript:
-```javascript
 <script>
-import { format } from 'date-fns'; // Para formatação de data
-import Swal from 'sweetalert2'; // Importa SweetAlert2
+import { format } from "date-fns";
+import Swal from "sweetalert2";
 
 export default {
-  name: 'UserSchedule',
+  name: "UserSchedule",
   data() {
     return {
       selectedDate: null,
-      selectedTime: '',
+      selectedTime: "",
       calendarAttributes: [
         {
-          key: 'disable-sundays',
+          key: "disable-sundays",
           dates: { weekdays: [0] },
-          popover: { label: 'Domingos estão indisponíveis' },
+          popover: { label: "Domingos estão indisponíveis" },
           customData: { disabled: true },
         },
       ],
-      availableTimes: this.generateTimeSlots('07:00', '18:00', 30),
+      availableTimes: this.generateTimeSlots("07:00", "18:00", 30),
     };
   },
   computed: {
     formattedDate() {
       if (this.selectedDate) {
-        return format(new Date(this.selectedDate), 'dd/MM/yyyy');
+        return format(new Date(this.selectedDate), "dd/MM/yyyy");
       }
       return null;
     },
@@ -77,8 +83,8 @@ export default {
       const endTime = new Date(`1970-01-01T${end}:00`);
 
       while (currentTime <= endTime) {
-        const hours = currentTime.getHours().toString().padStart(2, '0');
-        const minutes = currentTime.getMinutes().toString().padStart(2, '0');
+        const hours = currentTime.getHours().toString().padStart(2, "0");
+        const minutes = currentTime.getMinutes().toString().padStart(2, "0");
         times.push(`${hours}:${minutes}`);
         currentTime.setMinutes(currentTime.getMinutes() + interval);
       }
@@ -87,9 +93,9 @@ export default {
     onDayClick(day) {
       if (day.date.getDay() === 0) {
         Swal.fire({
-          icon: 'error',
-          title: 'Domingo Indisponível',
-          text: 'Domingos não estão disponíveis para agendamento.',
+          icon: "error",
+          title: "Domingo Indisponível",
+          text: "Domingos não estão disponíveis para agendamento.",
         });
         return;
       }
@@ -98,9 +104,9 @@ export default {
     scheduleEvent() {
       if (!this.selectedDate || !this.selectedTime) {
         Swal.fire({
-          icon: 'warning',
-          title: 'Dados Incompletos',
-          text: 'Por favor, selecione uma data e um horário.',
+          icon: "warning",
+          title: "Dados Incompletos",
+          text: "Por favor, selecione uma data e um horário.",
         });
         return;
       }
@@ -112,9 +118,9 @@ export default {
 
       if (selectedDate < new Date(currentDate.toDateString())) {
         Swal.fire({
-          icon: 'error',
-          title: 'Data Inválida',
-          text: 'A data selecionada é menor que a data atual.',
+          icon: "error",
+          title: "Data Inválida",
+          text: "A data selecionada é menor que a data atual.",
         });
         return;
       }
@@ -122,28 +128,35 @@ export default {
       if (selectedDate.toDateString() === currentDate.toDateString()) {
         if (selectedDateTime < currentDate) {
           Swal.fire({
-            icon: 'warning',
-            title: 'Horário Inválido',
-            text: 'O horário selecionado é menor que o horário atual.',
+            icon: "warning",
+            title: "Horário Inválido",
+            text: "O horário selecionado é menor que o horário atual.",
           });
           return;
         }
         if (selectedDateTime > closingTime) {
           Swal.fire({
-            icon: 'error',
-            title: 'Fora do Horário',
-            text: 'Selecione um horário entre 07:00 e 18:00.',
+            icon: "error",
+            title: "Fora do Horário",
+            text: "Selecione um horário entre 07:00 e 18:00.",
           });
           return;
         }
       }
 
       Swal.fire({
-        icon: 'success',
-        title: 'Evento Agendado',
+        icon: "success",
+        title: "Evento Agendado",
         text: `Evento agendado para ${this.formattedDate} às ${this.selectedTime}`,
       });
     },
   },
 };
 </script>
+
+<style scoped>
+.container {
+  max-width: 600px;
+  margin: auto;
+}
+</style>
