@@ -8,8 +8,8 @@
           is-expanded
           color="blue"
           locale="pt-BR"
-          @dayclick="onDayClick"
           :attributes="calendarAttributes"
+          @dayclick="onDayClick"
       ></vc-calendar>
 
       <!-- Seleção de horário limitado -->
@@ -44,27 +44,25 @@
 </template>
 
 <script>
-import { format } from 'date-fns'; // Para formatação de data
+import { format } from 'date-fns';
 
 export default {
   name: 'UserSchedule',
   data() {
     return {
-      selectedDate: null, // Data selecionada pelo calendário
+      selectedDate: null, // Data selecionada
       selectedTime: '', // Horário selecionado
       calendarAttributes: [
         {
           key: 'disable-sundays',
-          dates: { weekdays: [0] }, // Bloqueia os domingos (0 = domingo)
+          highlight: true,
+          dates: (date) => date.getDay() === 0, // Bloqueia domingos
           popover: {
-            label: 'Domingos estão indisponíveis',
-          },
-          customData: {
-            disabled: true, // Desabilita os domingos
+            label: 'Domingos não estão disponíveis.',
           },
         },
       ],
-      availableTimes: this.generateTimeSlots('07:00', '18:00', 30), // Gera horários disponíveis
+      availableTimes: this.generateTimeSlots('07:00', '18:00', 30), // Horários disponíveis
     };
   },
   computed: {
@@ -91,12 +89,15 @@ export default {
       return times;
     },
     onDayClick(day) {
-      // Verifica se o dia está desabilitado (domingo)
-      if (day.customData && day.customData.disabled) {
+      // Extraia a data do objeto `day` recebido
+      const clickedDate = new Date(day.date);
+
+      if (clickedDate.getDay() === 0) {
         alert('Domingos não estão disponíveis para agendamento.');
         return;
       }
-      this.selectedDate = day.date; // Atualiza a data selecionada com o clique no calendário
+
+      this.selectedDate = clickedDate; // Atualiza a data selecionada
     },
     scheduleEvent() {
       if (!this.selectedDate || !this.selectedTime) {
@@ -121,9 +122,8 @@ export default {
           alert('Horário menor que o horário atual. Por favor, selecione um horário válido.');
           return;
         }
-
         if (selectedDateTime > closingTime) {
-          alert('Fora do horário de funcionamento. Por favor, selecione um horário entre 07:00 e 18:00.');
+          alert('Fora do horário de funcionamento.');
           return;
         }
       }
