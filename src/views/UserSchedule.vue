@@ -2,17 +2,15 @@
   <div class="container mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4">Agendar Corte</h1>
     <div class="calendar-container">
-      <!-- Calendário para seleção de data -->
       <vc-calendar
           v-model="selectedDate"
           is-expanded
           color="blue"
           locale="pt-BR"
-          :attributes="calendarAttributes"
           @dayclick="onDayClick"
+          :attributes="calendarAttributes"
       ></vc-calendar>
 
-      <!-- Seleção de horário limitado -->
       <div class="mt-4">
         <label class="block text-sm font-medium mb-2">Horário</label>
         <select v-model="selectedTime" class="border rounded w-full px-3 py-2" required>
@@ -23,7 +21,6 @@
         </select>
       </div>
 
-      <!-- Mostra data e horário selecionados -->
       <div class="mt-4">
         <h2 class="text-lg font-semibold mb-2">Data e Horário Selecionados</h2>
         <p>
@@ -32,7 +29,6 @@
         </p>
       </div>
 
-      <!-- Botão de ação -->
       <button
           @click="scheduleEvent"
           class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-500 transition"
@@ -43,26 +39,27 @@
   </div>
 </template>
 
+#### JavaScript:
+```javascript
 <script>
-import { format } from 'date-fns';
+import { format } from 'date-fns'; // Para formatação de data
+import Swal from 'sweetalert2'; // Importa SweetAlert2
 
 export default {
   name: 'UserSchedule',
   data() {
     return {
-      selectedDate: null, // Data selecionada
-      selectedTime: '', // Horário selecionado
+      selectedDate: null,
+      selectedTime: '',
       calendarAttributes: [
         {
           key: 'disable-sundays',
-          highlight: true,
-          dates: (date) => date.getDay() === 0, // Bloqueia domingos
-          popover: {
-            label: 'Domingos não estão disponíveis.',
-          },
+          dates: { weekdays: [0] },
+          popover: { label: 'Domingos estão indisponíveis' },
+          customData: { disabled: true },
         },
       ],
-      availableTimes: this.generateTimeSlots('07:00', '18:00', 30), // Horários disponíveis
+      availableTimes: this.generateTimeSlots('07:00', '18:00', 30),
     };
   },
   computed: {
@@ -85,23 +82,26 @@ export default {
         times.push(`${hours}:${minutes}`);
         currentTime.setMinutes(currentTime.getMinutes() + interval);
       }
-
       return times;
     },
     onDayClick(day) {
-      // Extraia a data do objeto `day` recebido
-      const clickedDate = new Date(day.date);
-
-      if (clickedDate.getDay() === 0) {
-        alert('Domingos não estão disponíveis para agendamento.');
+      if (day.date.getDay() === 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Domingo Indisponível',
+          text: 'Domingos não estão disponíveis para agendamento.',
+        });
         return;
       }
-
-      this.selectedDate = clickedDate; // Atualiza a data selecionada
+      this.selectedDate = day.date;
     },
     scheduleEvent() {
       if (!this.selectedDate || !this.selectedTime) {
-        alert('Por favor, selecione uma data e um horário.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Dados Incompletos',
+          text: 'Por favor, selecione uma data e um horário.',
+        });
         return;
       }
 
@@ -110,33 +110,40 @@ export default {
       const selectedDateTime = new Date(`${this.selectedDate}T${this.selectedTime}`);
       const closingTime = new Date(`${currentDate.toDateString()}T18:00`);
 
-      // Validação: data anterior ao dia atual
       if (selectedDate < new Date(currentDate.toDateString())) {
-        alert('Data menor que a data atual. Por favor, selecione uma data válida.');
+        Swal.fire({
+          icon: 'error',
+          title: 'Data Inválida',
+          text: 'A data selecionada é menor que a data atual.',
+        });
         return;
       }
 
-      // Validação: mesmo dia, mas horário no passado
       if (selectedDate.toDateString() === currentDate.toDateString()) {
         if (selectedDateTime < currentDate) {
-          alert('Horário menor que o horário atual. Por favor, selecione um horário válido.');
+          Swal.fire({
+            icon: 'warning',
+            title: 'Horário Inválido',
+            text: 'O horário selecionado é menor que o horário atual.',
+          });
           return;
         }
         if (selectedDateTime > closingTime) {
-          alert('Fora do horário de funcionamento.');
+          Swal.fire({
+            icon: 'error',
+            title: 'Fora do Horário',
+            text: 'Selecione um horário entre 07:00 e 18:00.',
+          });
           return;
         }
       }
 
-      alert(`Evento agendado para ${this.formattedDate} às ${this.selectedTime}`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Evento Agendado',
+        text: `Evento agendado para ${this.formattedDate} às ${this.selectedTime}`,
+      });
     },
   },
 };
 </script>
-
-<style scoped>
-.container {
-  max-width: 600px;
-  margin: auto;
-}
-</style>
