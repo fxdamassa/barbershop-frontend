@@ -3,7 +3,10 @@
     <!-- Menu de navegação fixo -->
     <nav class="bg-blue-600 text-white p-4">
       <div class="container mx-auto flex justify-between items-center">
-        <h1 class="text-xl font-semibold">{{ pageTitle }}</h1>
+        <div>
+          <h1 class="text-xl font-semibold">{{ pageTitle }}</h1>
+          <p class="text-sm" v-if="userName">Bem-vindo, {{ userName }}</p>
+        </div>
         <ul class="flex space-x-4">
           <li>
             <router-link
@@ -43,16 +46,37 @@
 
 <script>
 export default {
-  name: 'UserDashboard',
+  name: "UserDashboard",
+  data() {
+    return {
+      userName: "",
+    };
+  },
+  mounted() {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+    const user = urlParams.get("user");
+
+    if (token) {
+      localStorage.setItem("auth_token", token);
+    }
+
+    if (user) {
+      this.userName = user;
+    } else {
+      this.userName = "Usuário";
+    }
+  },
   computed: {
     pageTitle() {
       switch (this.$route.path) {
-        case '/schedule':
-          return 'Agendar Corte';
-        case '/contact':
-          return 'Contato';
+        case "/schedule":
+          return "Agendar Corte";
+        case "/contact":
+          return "Contato";
         default:
-          return 'Dashboard';
+          return "Dashboard";
       }
     },
   },
@@ -61,9 +85,10 @@ export default {
       return this.$route.path === route;
     },
     logout() {
-      localStorage.removeItem('auth_token');
-      this.$router.push('/');
+      localStorage.removeItem("auth_token");
+      this.$router.push("/");
     },
   },
 };
 </script>
+
