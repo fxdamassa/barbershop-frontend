@@ -113,45 +113,55 @@ export default {
         return;
       }
 
-      const currentDate = new Date();
-      const selectedDate = new Date(this.selectedDate);
-      const selectedDateTime = new Date(`${this.selectedDate}T${this.selectedTime}`);
-      const closingTime = new Date(`${currentDate.toDateString()}T18:00`);
-
-      if (selectedDate < new Date(currentDate.toDateString())) {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
         Swal.fire({
           icon: "error",
-          title: "Data Inválida",
-          text: "A data selecionada é menor que a data atual.",
+          title: "Erro de Autenticação",
+          text: "Usuário não autenticado. Por favor, faça login novamente.",
         });
         return;
       }
 
-      if (selectedDate.toDateString() === currentDate.toDateString()) {
-        if (selectedDateTime < currentDate) {
-          Swal.fire({
-            icon: "warning",
-            title: "Horário Inválido",
-            text: "O horário selecionado é menor que o horário atual.",
-          });
-          return;
-        }
-        if (selectedDateTime > closingTime) {
-          Swal.fire({
-            icon: "error",
-            title: "Fora do Horário",
-            text: "Selecione um horário entre 07:00 e 18:00.",
-          });
-          return;
-        }
-      }
+      const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
-      Swal.fire({
-        icon: "success",
-        title: "Evento Agendado",
-        text: `Evento agendado para ${this.formattedDate} às ${this.selectedTime}`,
-      });
-    },
+      fetch("http://127.0.0.1:8000/api/agendar-corte", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          data_agendamento: formattedDate,
+          hora_agendamento: this.selectedTime,
+        }),
+      })
+          .then(async (response) => {
+            const data = await response.json();
+            if (response.ok) {
+              Swal.fire({
+                icon: "success",
+                title: "Sucesso",
+                text: data.message || "Agendamento salvo com sucesso!",
+              });
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Erro",
+                text: data.message || "Erro ao salvar o agendamento.",
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Erro ao salvar o agendamento:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Erro",
+              text: "A data de agendamento não pode ser inferior a data atual.",
+            });
+          });
+    }
+
   },
 };
 </script>
