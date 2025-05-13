@@ -21,7 +21,11 @@
             required
         >
           <option disabled value="">Selecione o horário</option>
-          <option v-for="hour in availableTimes" :key="hour" :value="hour">
+          <option
+              v-for="hour in availableTimes"
+              :key="hour"
+              :value="hour"
+          >
             {{ hour }}
           </option>
         </select>
@@ -56,6 +60,9 @@ export default {
     return {
       selectedDate: null,
       selectedTime: "",
+      bookedTimes: [], // Horários ocupados
+      availableTimes: [], // Horários disponíveis
+      allTimes: this.generateTimeSlots("07:00", "18:00", 30), // Todos os horários possíveis
       calendarAttributes: [
         {
           key: "disable-sundays",
@@ -64,7 +71,6 @@ export default {
           customData: { disabled: true },
         },
       ],
-      availableTimes: this.generateTimeSlots("07:00", "18:00", 30),
     };
   },
   computed: {
@@ -92,7 +98,8 @@ export default {
       }
       return times;
     },
-    onDayClick(day) {
+
+    async onDayClick(day) {
       if (day.date.getDay() === 0) {
         Swal.fire({
           icon: "error",
@@ -101,9 +108,61 @@ export default {
         });
         return;
       }
+
       this.selectedDate = day.date;
+      await this.fetchBookedTimes(); // Atualiza os horários ocupados e disponíveis
     },
-    scheduleEvent() {
+
+    async fetchBookedTimes() {
+      if (!this.selectedDate) return;
+
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        Swal.fire({
+          icon: "error",
+          title: "Erro de Autenticação",
+          text: "Usuário não autenticado. Por favor, faça login novamente.",
+        });
+        return;
+      }
+
+      const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/agendar-corte/${formattedDate}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          Swal.fire({
+            icon: "error",
+            title: "Erro",
+            text: errorData.message || "Erro ao buscar horários agendados.",
+          });
+          return;
+        }
+
+        const data = await response.json();
+        this.bookedTimes = data.bookedTimes || [];
+
+        // Atualiza os horários disponíveis removendo os ocupados
+        this.availableTimes = this.allTimes.filter(time => !this.bookedTimes.includes(time));
+
+      } catch (error) {
+        console.error("Erro ao buscar horários agendados:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Erro",
+          text: "Erro ao conectar com o servidor. Tente novamente mais tarde.",
+        });
+      }
+    },
+
+    async scheduleEvent() {
       if (!this.selectedDate || !this.selectedTime) {
         Swal.fire({
           icon: "warning",
@@ -125,50 +184,50 @@ export default {
 
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
-      fetch("http://127.0.0.1:8000/api/agendar-corte", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          data_agendamento: formattedDate,
-          hora_agendamento: this.selectedTime,
-        }),
-      })
-          .then(async (response) => {
-            const data = await response.json();
-            if (response.ok) {
-              Swal.fire({
-                icon: "success",
-                title: "Sucesso",
-                text: data.message || "Agendamento salvo com sucesso!",
-              });
-            } else {
-              Swal.fire({
-                icon: "error",
-                title: "Erro",
-                text: data.message || "Erro ao salvar o agendamento.",
-              });
-            }
-          })
-          .catch((error) => {
-            console.error("Erro ao salvar o agendamento:", error);
-            Swal.fire({
-              icon: "error",
-              title: "Erro",
-              text: "A data de agendamento não pode ser inferior a data atual.",
-            });
-          });
-    }
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/agendar-corte", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            data_agendamento: formattedDate,
+            hora_agendamento: this.selectedTime,
+          }),
+        });
 
+        const data = await response.json();
+        if (response.ok) {
+          // Atualiza a lista de horários indisponíveis após o agendamento
+          this.bookedTimes.push(this.selectedTime);
+          this.availableTimes = this.availableTimes.filter(time => time !== this.selectedTime);
+
+          this.selectedTime = ""; // Limpa a seleção do horário
+
+          Swal.fire({
+            icon: "success",
+            title: "Sucesso",
+            text: data.message || "Agendamento salvo com sucesso!",
+          }).then(() => {
+            this.fetchBookedTimes(); // Atualiza os horários ocupados
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Erro",
+            text: data.message || "Erro ao salvar o agendamento.",
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao salvar o agendamento:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Erro",
+          text: "Erro ao conectar com o servidor. Tente novamente mais tarde.",
+        });
+      }
+    },
   },
 };
 </script>
-
-<style scoped>
-.container {
-  max-width: 600px;
-  margin: auto;
-}
-</style>
