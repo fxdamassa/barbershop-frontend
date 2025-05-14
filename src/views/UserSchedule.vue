@@ -12,7 +12,7 @@
           :attributes="calendarAttributes"
       ></vc-calendar>
 
-      <!-- Seleção de horário limitado -->
+      <!-- Seleção de horário -->
       <div class="mt-4">
         <label class="block text-sm font-medium mb-1">Horário</label>
         <select
@@ -60,9 +60,9 @@ export default {
     return {
       selectedDate: null,
       selectedTime: "",
-      bookedTimes: [], // Horários ocupados
-      availableTimes: [], // Horários disponíveis
-      allTimes: this.generateTimeSlots("07:00", "18:00", 30), // Todos os horários possíveis
+      bookedTimes: [],
+      availableTimes: [],
+      allTimes: this.generateTimeSlots("07:00", "18:00", 30),
       calendarAttributes: [
         {
           key: "disable-sundays",
@@ -110,7 +110,7 @@ export default {
       }
 
       this.selectedDate = day.date;
-      await this.fetchBookedTimes(); // Atualiza os horários ocupados e disponíveis
+      await this.fetchBookedTimes();
     },
 
     async fetchBookedTimes() {
@@ -136,22 +136,17 @@ export default {
           },
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        const data = await response.json();
+        if (response.ok) {
+          this.bookedTimes = data.bookedTimes || [];
+          this.availableTimes = this.allTimes.filter(time => !this.bookedTimes.includes(time));
+        } else {
           Swal.fire({
             icon: "error",
             title: "Erro",
-            text: errorData.message || "Erro ao buscar horários agendados.",
+            text: data.message || "Erro ao buscar horários.",
           });
-          return;
         }
-
-        const data = await response.json();
-        this.bookedTimes = data.bookedTimes || [];
-
-        // Atualiza os horários disponíveis removendo os ocupados
-        this.availableTimes = this.allTimes.filter(time => !this.bookedTimes.includes(time));
-
       } catch (error) {
         console.error("Erro ao buscar horários agendados:", error);
         Swal.fire({
@@ -198,36 +193,49 @@ export default {
         });
 
         const data = await response.json();
+
         if (response.ok) {
-          // Atualiza a lista de horários indisponíveis após o agendamento
           this.bookedTimes.push(this.selectedTime);
           this.availableTimes = this.availableTimes.filter(time => time !== this.selectedTime);
-
-          this.selectedTime = ""; // Limpa a seleção do horário
+          this.selectedTime = "";
 
           Swal.fire({
             icon: "success",
             title: "Sucesso",
             text: data.message || "Agendamento salvo com sucesso!",
-          }).then(() => {
-            this.fetchBookedTimes(); // Atualiza os horários ocupados
           });
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Erro",
-            text: data.message || "Erro ao salvar o agendamento.",
-          });
+          if (response.status === 422 && data.errors) {
+            const errorMsg = Object.values(data.errors)[0];
+            Swal.fire({
+              icon: "error",
+              title: "Erro de Validação",
+              text: errorMsg || "Dados inválidos.",
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Erro",
+              text: data.message || "Erro ao salvar o agendamento.",
+            });
+          }
         }
       } catch (error) {
-        console.error("Erro ao salvar o agendamento:", error);
+        console.error("Erro ao salvar agendamento:", error);
         Swal.fire({
           icon: "error",
           title: "Erro",
-          text: "Erro ao conectar com o servidor. Tente novamente mais tarde.",
+          text: "Erro ao conectar com o servidor.",
         });
       }
     },
   },
 };
 </script>
+
+<style scoped>
+.container {
+  max-width: 600px;
+  margin: auto;
+}
+</style>
