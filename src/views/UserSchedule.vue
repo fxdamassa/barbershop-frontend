@@ -22,11 +22,12 @@
         >
           <option disabled value="">Selecione o horário</option>
           <option
-              v-for="hour in availableTimes"
+              v-for="hour in allTimes"
               :key="hour"
               :value="hour"
+              :disabled="bookedTimes.includes(hour)"
           >
-            {{ hour }}
+            {{ hour }} <span v-if="bookedTimes.includes(hour)"> (Indisponível)</span>
           </option>
         </select>
       </div>
@@ -99,6 +100,17 @@ export default {
       return times;
     },
 
+    validateSelectedTime() {
+      if (this.bookedTimes.includes(this.selectedTime)) {
+        Swal.fire({
+          icon: "warning",
+          title: "Horário Indisponível",
+          text: "Este horário já está agendado. Por favor, escolha outro.",
+        });
+        this.selectedTime = "";
+      }
+    },
+
     async onDayClick(day) {
       if (day.date.getDay() === 0) {
         Swal.fire({
@@ -115,6 +127,8 @@ export default {
 
     async fetchBookedTimes() {
       if (!this.selectedDate) return;
+
+      this.selectedTime = ""; // limpa seleção anterior
 
       const token = localStorage.getItem("auth_token");
       if (!token) {
@@ -139,7 +153,6 @@ export default {
         const data = await response.json();
         if (response.ok) {
           this.bookedTimes = data.bookedTimes || [];
-          this.availableTimes = this.allTimes.filter(time => !this.bookedTimes.includes(time));
         } else {
           Swal.fire({
             icon: "error",
@@ -230,6 +243,18 @@ export default {
       }
     },
   },
+  watch: {
+    selectedTime(newVal) {
+      if (this.bookedTimes.includes(newVal)) {
+        this.selectedTime = "";
+        Swal.fire({
+          icon: "warning",
+          title: "Horário Indisponível",
+          text: "Esse horário já está agendado. Por favor, selecione outro.",
+        });
+      }
+    }
+  }
 };
 </script>
 
