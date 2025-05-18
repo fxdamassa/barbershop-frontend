@@ -86,6 +86,9 @@ export default {
     },
   },
   methods: {
+    API_URL() {
+      return import.meta.env.VITE_API_URL;
+    },
     generateTimeSlots(start, end, interval) {
       const times = [];
       let currentTime = new Date(`1970-01-01T${start}:00`);
@@ -128,7 +131,7 @@ export default {
     async fetchBookedTimes() {
       if (!this.selectedDate) return;
 
-      this.selectedTime = ""; // limpa seleção anterior
+      this.selectedTime = "";
 
       const token = localStorage.getItem("auth_token");
       if (!token) {
@@ -143,7 +146,7 @@ export default {
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/api/agendar-corte/${formattedDate}`, {
+        const response = await fetch(`${(this.API_URL)}/api/agendar-corte/${formattedDate}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -193,7 +196,7 @@ export default {
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/agendar-corte", {
+        const response = await fetch(`${this.API_URL()}/api/agendar-corte`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
