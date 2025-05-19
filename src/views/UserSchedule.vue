@@ -194,7 +194,7 @@ export default {
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
       try {
-        const response = await fetch(`${API_URL}/agendar-corte/${formattedDate}`, {
+        const response = await fetch(`${API_URL}/agendar-corte`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
