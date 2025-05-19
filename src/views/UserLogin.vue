@@ -14,11 +14,12 @@
 </template>
 
 <script>
+const API_URL = process.env.VUE_APP_API_URL;
 export default {
   name: "UserLogin",
   methods: {
     loginWithGoogle() {
-      window.location.href = "http://127.0.0.1:8000/api/google/redirect";
+      window.location.href = `${API_URL}/google/redirect`;
     },
   },
 };
