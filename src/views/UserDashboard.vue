@@ -10,6 +10,15 @@
         <ul class="flex space-x-4">
           <li>
             <router-link
+                to="/dashboard"
+                class="hover:underline"
+                :class="{ 'font-bold': isActiveRoute('/dashboard') }"
+            >
+              Dashboard
+            </router-link>
+          </li>
+          <li>
+            <router-link
                 to="/schedule"
                 class="hover:underline"
                 :class="{ 'font-bold': isActiveRoute('/schedule') }"

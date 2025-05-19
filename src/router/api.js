@@ -15,7 +15,10 @@ const routes = [
                 name: 'UserSchedule',
                 component: () => import('../views/UserSchedule.vue'),
             },
-            { path: '/contact', name: 'UserContact', component: UserContact },
+            {
+                path: '/contact',
+                name: 'UserContact',
+                component: UserContact },
         ],
     },
 ];
