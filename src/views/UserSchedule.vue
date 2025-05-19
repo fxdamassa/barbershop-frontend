@@ -54,6 +54,7 @@
 
 <script>
 import Swal from "sweetalert2";
+const API_URL = process.env.VUE_APP_API_URL;
 
 export default {
   name: "UserSchedule",
@@ -86,9 +87,6 @@ export default {
     },
   },
   methods: {
-    API_URL() {
-      return import.meta.env.VITE_API_URL;
-    },
     generateTimeSlots(start, end, interval) {
       const times = [];
       let currentTime = new Date(`1970-01-01T${start}:00`);
@@ -146,7 +144,7 @@ export default {
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
       try {
-        const response = await fetch(`${(this.API_URL)}/api/agendar-corte/${formattedDate}`, {
+        const response = await fetch(`${API_URL}/agendar-corte/${formattedDate}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -196,7 +194,7 @@ export default {
       const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
 
       try {
-        const response = await fetch(`${this.API_URL()}/api/agendar-corte`, {
+        const response = await fetch(`${API_URL}/agendar-corte/${formattedDate}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -257,7 +255,7 @@ export default {
         });
       }
     }
-  }
+  },
 };
 </script>
 
