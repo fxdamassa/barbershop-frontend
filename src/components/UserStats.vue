@@ -43,12 +43,16 @@
 
 <script>
 import BarChart from '@/components/charts/BarChart.vue';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export default {
   components: { BarChart },
   data() {
     return {
-      selectedYear: new Date().getFullYear(),
+      selectedYear: null,
       anosDisponiveis: [],
       barLabels: [],
       barValues: [],
@@ -57,6 +61,7 @@ export default {
   },
   async mounted() {
     this.initAnosDisponiveis();
+    this.selectedYear = this.anosDisponiveis[0]; // agora definido corretamente
     await this.fetchEstatisticas();
   },
   methods: {
@@ -68,10 +73,12 @@ export default {
       }
     },
     async fetchEstatisticas() {
+      if (!this.selectedYear) return; // segurança extra
+
       const token = localStorage.getItem('auth_token');
       try {
         const res = await fetch(`${process.env.VUE_APP_API_URL}/dashboard/estatisticas?ano=${this.selectedYear}`, {
-          headers: {Authorization: `Bearer ${token}`}
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
 
@@ -84,8 +91,14 @@ export default {
       }
     },
     formatDate(date) {
-      return new Date(date).toLocaleDateString('pt-BR');
+      return dayjs.utc(date).format('DD/MM/YYYY');
+    }
+  },
+  watch: {
+    selectedYear() {
+      this.fetchEstatisticas(); // agora realmente escuta mudanças
     }
   }
 };
 </script>
+
