@@ -5,7 +5,7 @@
     <!-- Select de ano -->
     <div class="mb-4 text-center">
       <label for="ano" class="font-semibold mr-2">Selecione o ano:</label>
-      <select id="ano" v-model="selectedYear" @change="fetchEstatisticas" class="border rounded px-2 py-1">
+      <select id="ano" v-model="selectedYear" class="border rounded px-2 py-1">
         <option v-for="year in anosDisponiveis" :key="year" :value="year">{{ year }}</option>
       </select>
     </div>
@@ -14,15 +14,21 @@
       <!-- Gráfico -->
       <div class="bg-white p-4 rounded shadow">
         <h3 class="text-center font-semibold mb-2">Agendamentos por mês</h3>
-        <BarChart v-if="barLabels.length" :labels="barLabels" :values="barValues" :width="400" :height="300" />
+        <BarChart
+            v-if="Array.isArray(barLabels) && barLabels.length"
+            :labels="barLabels"
+            :values="barValues"
+            :width="400"
+            :height="300"
+        />
         <p v-else class="text-center text-gray-500 mt-6">Sem dados disponíveis.</p>
       </div>
 
       <!-- Tabela -->
       <div class="bg-white p-4 rounded shadow">
         <h3 class="text-center font-semibold mb-2">Seus Agendamentos</h3>
-        <table v-if="agendamentosDetalhados.length" class="w-full table-auto mt-2">
-          <thead>
+        <table v-if="Array.isArray(agendamentosDetalhados) && agendamentosDetalhados.length" class="w-full table-auto mt-2">
+        <thead>
           <tr class="bg-gray-200">
             <th class="px-4 py-2">Data</th>
             <th class="px-4 py-2">Horário</th>
@@ -36,6 +42,25 @@
           </tbody>
         </table>
         <p v-else class="text-center text-gray-500 mt-6">Nenhum agendamento encontrado.</p>
+
+        <!-- Paginação -->
+        <div v-if="pagination?.total > 0" class="flex justify-center mt-4 space-x-2">
+        <button
+              @click="fetchEstatisticas(pagination.current_page - 1)"
+              :disabled="pagination.current_page === 1"
+              class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span class="px-3 py-1">{{ pagination.current_page }} / {{ pagination.last_page }}</span>
+          <button
+              @click="fetchEstatisticas(pagination.current_page + 1)"
+              :disabled="pagination.current_page === pagination.last_page"
+              class="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+          >
+            Próxima
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -45,7 +70,6 @@
 import BarChart from '@/components/charts/BarChart.vue';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
-
 dayjs.extend(utc);
 
 export default {
@@ -57,35 +81,50 @@ export default {
       barLabels: [],
       barValues: [],
       agendamentosDetalhados: [],
+      pagination: null,
     };
   },
-  async mounted() {
+  mounted() {
     this.initAnosDisponiveis();
-    this.selectedYear = this.anosDisponiveis[0]; // agora definido corretamente
-    await this.fetchEstatisticas();
+    this.selectedYear = this.anosDisponiveis[0];
+    this.fetchEstatisticas();
+  },
+  watch: {
+    selectedYear() {
+      this.fetchEstatisticas(); // reseta para a primeira página automaticamente
+    }
   },
   methods: {
     initAnosDisponiveis() {
       const atual = new Date().getFullYear();
-      this.anosDisponiveis = [];
       for (let i = 0; i < 5; i++) {
         this.anosDisponiveis.push(atual - i);
       }
     },
-    async fetchEstatisticas() {
-      if (!this.selectedYear) return; // segurança extra
-
+    async fetchEstatisticas(page = 1) {
       const token = localStorage.getItem('auth_token');
       try {
-        const res = await fetch(`${process.env.VUE_APP_API_URL}/dashboard/estatisticas?ano=${this.selectedYear}`, {
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await fetch(`${process.env.VUE_APP_API_URL}/dashboard/estatisticas?ano=${this.selectedYear}&page=${page}`, {
+          headers: {Authorization: `Bearer ${token}`}
         });
         const data = await res.json();
 
         const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        this.barLabels = data.agendamentosPorMes.map(item => meses[item.mes - 1]);
-        this.barValues = data.agendamentosPorMes.map(item => item.total);
-        this.agendamentosDetalhados = data.agendamentosDetalhados;
+
+        if (Array.isArray(data.agendamentosPorMes)) {
+          this.barLabels = data.agendamentosPorMes.map(item => meses[item.mes - 1]);
+          this.barValues = data.agendamentosPorMes.map(item => item.total);
+        } else {
+          this.barLabels = [];
+          this.barValues = [];
+        }
+        this.agendamentosDetalhados = data.agendamentosDetalhados || [];
+        this.pagination = data.pagination || {
+          current_page: 1,
+          last_page: 1,
+          per_page: 10,
+          total: 0
+        };
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard:", error);
       }
@@ -93,12 +132,6 @@ export default {
     formatDate(date) {
       return dayjs.utc(date).format('DD/MM/YYYY');
     }
-  },
-  watch: {
-    selectedYear() {
-      this.fetchEstatisticas(); // agora realmente escuta mudanças
-    }
   }
 };
 </script>
-
