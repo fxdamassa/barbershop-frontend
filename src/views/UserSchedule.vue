@@ -32,6 +32,22 @@
         </select>
       </div>
 
+      <!-- Seleção de serviço -->
+      <div class="mt-4">
+        <label class="block text-sm font-medium mb-1">Serviço</label>
+        <select
+            v-model="selectedService"
+            class="border rounded w-full px-2 py-1 text-sm"
+            required
+        >
+          <option disabled value="">Selecione o serviço</option>
+          <option v-for="servico in servicos" :key="servico.id" :value="servico.id">
+            {{ servico.servico }}
+          </option>
+        </select>
+      </div>
+
+
       <!-- Mostra data e horário selecionados -->
       <div class="mt-4">
         <h2 class="text-lg font-semibold mb-2">Data e Horário Selecionados</h2>
@@ -62,6 +78,8 @@ export default {
     return {
       selectedDate: null,
       selectedTime: "",
+      selectedService: "",
+      servicos: [],
       bookedTimes: [],
       availableTimes: [],
       allTimes: this.generateTimeSlots("07:00", "18:00", 30),
@@ -86,7 +104,29 @@ export default {
       return null;
     },
   },
+
+  mounted() {
+    console.log("Chamando fetchServicos()");
+    this.fetchServicos();
+  },
+
   methods: {
+    async fetchServicos() {
+      const token = localStorage.getItem("auth_token");
+      try {
+        const res = await fetch(`${API_URL}/agendar-corte/servicos`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        console.log("Serviços recebidos:", data);
+        this.servicos = data.servicos || [];
+      } catch (error) {
+        console.error("Erro ao buscar serviços:", error);
+      }
+    },
     generateTimeSlots(start, end, interval) {
       const times = [];
       let currentTime = new Date(`1970-01-01T${start}:00`);
@@ -203,6 +243,7 @@ export default {
           body: JSON.stringify({
             data_agendamento: formattedDate,
             hora_agendamento: this.selectedTime,
+            servico_id: this.selectedService,
           }),
         });
 
