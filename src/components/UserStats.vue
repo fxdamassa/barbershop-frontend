@@ -32,12 +32,14 @@
           <tr class="bg-gray-200">
             <th class="px-4 py-2">Data</th>
             <th class="px-4 py-2">Horário</th>
+            <th class="px-4 py-2">Serviço</th>
           </tr>
           </thead>
           <tbody>
           <tr v-for="(item, index) in agendamentosDetalhados" :key="index">
             <td class="border px-4 py-2">{{ formatDate(item.data_agendamento) }}</td>
             <td class="border px-4 py-2">{{ item.hora_agendamento.slice(0, 5) }}</td>
+            <td class="border px-4 py-2">{{ getServicoNome(item.servico_id) }}</td>
           </tr>
           </tbody>
         </table>
@@ -82,16 +84,19 @@ export default {
       barValues: [],
       agendamentosDetalhados: [],
       pagination: null,
+      servicos: [] // ✅ array de serviços
     };
   },
   mounted() {
     this.initAnosDisponiveis();
     this.selectedYear = this.anosDisponiveis[0];
-    this.fetchEstatisticas();
+    this.fetchServicos().then(() => {
+      this.fetchEstatisticas();
+    });
   },
   watch: {
     selectedYear() {
-      this.fetchEstatisticas(); // reseta para a primeira página automaticamente
+      this.fetchEstatisticas();
     }
   },
   methods: {
@@ -101,23 +106,36 @@ export default {
         this.anosDisponiveis.push(atual - i);
       }
     },
+    async fetchServicos() {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const res = await fetch(`${process.env.VUE_APP_API_URL}/agendar-corte/servicos`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        this.servicos = data.servicos || [];
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
+      }
+    },
     async fetchEstatisticas(page = 1) {
       const token = localStorage.getItem('auth_token');
       try {
         const res = await fetch(`${process.env.VUE_APP_API_URL}/dashboard/estatisticas?ano=${this.selectedYear}&page=${page}`, {
-          headers: {Authorization: `Bearer ${token}`}
+          headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
 
         const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-        if (Array.isArray(data.agendamentosPorMes)) {
-          this.barLabels = data.agendamentosPorMes.map(item => meses[item.mes - 1]);
-          this.barValues = data.agendamentosPorMes.map(item => item.total);
-        } else {
-          this.barLabels = [];
-          this.barValues = [];
-        }
+        this.barLabels = Array.isArray(data.agendamentosPorMes)
+            ? data.agendamentosPorMes.map(item => meses[item.mes - 1])
+            : [];
+
+        this.barValues = Array.isArray(data.agendamentosPorMes)
+            ? data.agendamentosPorMes.map(item => item.total)
+            : [];
+
         this.agendamentosDetalhados = data.agendamentosDetalhados || [];
         this.pagination = data.pagination || {
           current_page: 1,
@@ -131,7 +149,12 @@ export default {
     },
     formatDate(date) {
       return dayjs.utc(date).format('DD/MM/YYYY');
+    },
+    getServicoNome(servicoId) {
+      const servico = this.servicos.find(s => s.id === servicoId);
+      return servico ? servico.servico : 'Não informado';
     }
   }
 };
 </script>
+
