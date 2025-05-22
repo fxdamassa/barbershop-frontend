@@ -33,6 +33,7 @@
             <th class="px-4 py-2">Data</th>
             <th class="px-4 py-2">Horário</th>
             <th class="px-4 py-2">Serviço</th>
+            <th class="px-4 py-2">Ações</th>
           </tr>
           </thead>
           <tbody>
@@ -40,6 +41,18 @@
             <td class="border px-4 py-2">{{ formatDate(item.data_agendamento) }}</td>
             <td class="border px-4 py-2">{{ item.hora_agendamento.slice(0, 5) }}</td>
             <td class="border px-4 py-2">{{ getServicoNome(item.servico_id) }}</td>
+            <td class="border px-4 py-2">
+              <button
+                  @click="excluirAgendamento(item.id)"
+                  class="text-red-600 hover:text-red-800"
+                  title="Excluir agendamento"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a2 2 0 00-2-2H9a2 2 0 00-2 2m12 0H5" />
+                </svg>
+              </button>
+            </td>
+
           </tr>
           </tbody>
         </table>
@@ -72,6 +85,7 @@
 import BarChart from '@/components/charts/BarChart.vue';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import Swal from "sweetalert2";
 dayjs.extend(utc);
 
 export default {
@@ -145,6 +159,36 @@ export default {
         };
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard:", error);
+      }
+    },
+    async excluirAgendamento(id){
+      const confirm = await Swal.fire({
+        title: 'Tem certeza ?',
+        text: 'Você deseja excluir este agendamento ?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, excluir !',
+        cancelButtonText: 'Cancelar'
+      });
+      if(confirm.isConfirmed){
+        const token = localStorage.getItem('auth_token');
+        try {
+          const res = await fetch(`${process.env.VUE_APP_API_URL}/agendar-corte/${id}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          const data = await res.json();
+          if(res.ok){
+            Swal.fire('Excluido!', data.message, 'success');
+            this.fetchEstatisticas();
+          }else {
+            Swal.fire('Erro', data.error || 'Erro ao excluir', 'error');
+          }
+        } catch (error){
+          Swal.fire('Error', 'Erro ao conectar ao servidor', 'error')
+        }
       }
     },
     formatDate(date) {
