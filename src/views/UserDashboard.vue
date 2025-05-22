@@ -18,8 +18,13 @@
             <router-link to="/contact" class="hover:underline" :class="{ 'font-bold': isActiveRoute('/contact') }">Contato</router-link>
           </li>
           <li>
-            <button @click="logout" class="bg-red-500 hover:bg-red-700 px-3 py-1 rounded">Sair</button>
+            <button @click="logout" class="flex items-center justify-center bg-red-500 hover:bg-red-700 px-3 py-1 rounded" title="Sair">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-11v1m0 0V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2v-1" />
+              </svg>
+            </button>
           </li>
+
         </ul>
       </div>
     </nav>

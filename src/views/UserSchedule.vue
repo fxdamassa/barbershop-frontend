@@ -12,41 +12,43 @@
           :attributes="calendarAttributes"
       ></vc-calendar>
 
-      <!-- Seleção de horário -->
-      <div class="mt-4">
-        <label class="block text-sm font-medium mb-1">Horário</label>
-        <select
-            v-model="selectedTime"
-            class="border rounded w-full px-2 py-1 text-sm"
-            required
-        >
-          <option disabled value="">Selecione o horário</option>
-          <option
-              v-for="hour in allTimes"
-              :key="hour"
-              :value="hour"
-              :disabled="bookedTimes.includes(hour)"
+      <!-- Linha com horário e serviço lado a lado -->
+      <div class="mt-4 flex space-x-4">
+        <!-- Select de horário -->
+        <div class="w-1/2">
+          <label class="block text-sm font-medium mb-1">Horário</label>
+          <select
+              v-model="selectedTime"
+              class="border rounded w-full px-2 py-1 text-sm"
+              required
           >
-            {{ hour }} <span v-if="bookedTimes.includes(hour)"> (Indisponível)</span>
-          </option>
-        </select>
-      </div>
+            <option disabled value="">Selecione o horário</option>
+            <option
+                v-for="hour in allTimes"
+                :key="hour"
+                :value="hour"
+                :disabled="bookedTimes.includes(hour)"
+            >
+              {{ hour }} <span v-if="bookedTimes.includes(hour)"> (Indisponível)</span>
+            </option>
+          </select>
+        </div>
 
-      <!-- Seleção de serviço -->
-      <div class="mt-4">
-        <label class="block text-sm font-medium mb-1">Serviço</label>
-        <select
-            v-model="selectedService"
-            class="border rounded w-full px-2 py-1 text-sm"
-            required
-        >
-          <option disabled value="">Selecione o serviço</option>
-          <option v-for="servico in servicos" :key="servico.id" :value="servico.id">
-            {{ servico.servico }}
-          </option>
-        </select>
+        <!-- Select de serviço -->
+        <div class="w-1/2">
+          <label class="block text-sm font-medium mb-1">Serviço</label>
+          <select
+              v-model="selectedService"
+              class="border rounded w-full px-2 py-1 text-sm"
+              required
+          >
+            <option disabled value="">Selecione o serviço</option>
+            <option v-for="servico in servicos" :key="servico.id" :value="servico.id">
+              {{ servico.servico }}
+            </option>
+          </select>
+        </div>
       </div>
-
 
       <!-- Mostra data e horário selecionados -->
       <div class="mt-4">
