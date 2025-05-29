@@ -17,6 +17,9 @@
           <li>
             <router-link to="/contact" class="hover:underline" :class="{ 'font-bold': isActiveRoute('/contact') }">Contato</router-link>
           </li>
+          <li v-if="userRole === 'adm'">
+            <router-link to="/admin" class="hover:underline" :class="{ 'font-bold': isActiveRoute('/admin') }">Painel ADM</router-link>
+          </li>
           <li>
             <button @click="logout" class="flex items-center justify-center bg-red-500 hover:bg-red-700 px-3 py-1 rounded" title="Sair">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,7 +27,6 @@
               </svg>
             </button>
           </li>
-
         </ul>
       </div>
     </nav>
@@ -48,15 +50,23 @@ export default {
   data() {
     return {
       userName: "",
+      userRole: ""
     };
   },
   mounted() {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get("token");
     const user = urlParams.get("user");
+    const role = urlParams.get("role");
 
     if (tokenFromUrl) {
       localStorage.setItem("auth_token", tokenFromUrl);
+    }
+    if (role) {
+      localStorage.setItem("user_role", role);
+      this.userRole = role;
+    } else {
+      this.userRole = localStorage.getItem("user_role") || "";
     }
 
     this.userName = user || "Usuário";
@@ -67,6 +77,7 @@ export default {
     },
     logout() {
       localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_role");
       this.$router.push("/");
     }
   },
@@ -77,6 +88,8 @@ export default {
           return "Agendar Corte";
         case "/contact":
           return "Contato";
+        case "/admin":
+          return "Painel ADM";
         default:
           return "Dashboard";
       }
