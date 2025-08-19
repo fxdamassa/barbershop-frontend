@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router';
 import UserLogin from '../views/UserLogin.vue';
 import UserDashboard from '../views/UserDashboard.vue';
 import UserContact from '../views/UserContact.vue';
-import AdmDashboard from '../views/AdmDashboard.vue';
 
 const routes = [
     { path: '/', name: 'UserLogin', component: UserLogin },
@@ -26,8 +25,12 @@ const routes = [
     {
         path: '/admin',
         name: 'AdmDashboard',
-        component: AdmDashboard,
-        meta: { requiresAuth: true, requiresAdmin: true } // ✅ PROTEGE O ACESSO
+        component: () => import('../views/AdmDashboard.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true },
+        children: [
+            { path: 'servicos', name: 'AdminServicos', component: () => import('../views/AdminServicos.vue') },
+            { path: 'agendamentos', name: 'AdminAgendamentos', component: () => import('../views/AdminAgendamentos.vue') },
+        ]
     }
 ];
 
