@@ -27,7 +27,13 @@
 
       <div>
         <label class="text-sm text-gray-600">Mês/Ano</label>
-        <input v-model="mesAno" type="month" class="border p-2 rounded w-full" />
+        <!-- Novo calendário bonito -->
+        <flat-pickr
+            v-model="mesAnoDate"
+            :config="fpConfig"
+            placeholder="Selecione o mês"
+            class="border p-2 rounded w-full"
+        />
       </div>
 
       <div class="flex gap-2">
@@ -57,7 +63,7 @@
       <!-- XLSX -->
       <button
           @click="exportarXlsx"
-          :disabled="exporting || loading"
+          :disabled="exporting || loading || !(itens && itens.data && itens.data.length)"
           :aria-busy="exporting && exportingType==='xlsx'"
           title="Exportar XLSX"
           class="p-2 border rounded hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -75,7 +81,7 @@
       <!-- PDF -->
       <button
           @click="exportarPdf"
-          :disabled="exporting || loading"
+          :disabled="exporting || loading || !(itens && itens.data && itens.data.length)"
           :aria-busy="exporting && exportingType==='pdf'"
           title="Exportar PDF"
           class="p-2 border rounded hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -150,14 +156,24 @@ import api from '../axios';
 import excelIcon from '@/assets/excel.png';
 import pdfIcon from '@/assets/pdf.png';
 
+// Flatpickr (calendário bonito)
+import FlatPickr from 'vue-flatpickr-component';
+import 'flatpickr/dist/flatpickr.css';
+import 'flatpickr/dist/themes/material_blue.css';
+import monthSelectPlugin from 'flatpickr/dist/plugins/monthSelect/index.js';
+import 'flatpickr/dist/plugins/monthSelect/style.css';
+import { Portuguese } from 'flatpickr/dist/l10n/pt.js';
+
 export default {
   name: 'AdminAgendamentos',
+  components: { FlatPickr },
   data() {
     return {
       q: '',
       servicoId: '',
       usuarioId: '',
-      mesAno: '', // YYYY-MM
+      mesAno: '',        // YYYY-MM para enviar ao backend
+      mesAnoDate: null,  // Date usado pelo Flatpickr
       page: 1,
       itens: { data: [], current_page: 1, last_page: 1 },
       servicosOpts: [],
@@ -169,10 +185,33 @@ export default {
         excel: excelIcon,
         pdf: pdfIcon,
       },
+      fpConfig: {
+        locale: Portuguese,
+        altInput: true,
+        allowInput: true,
+        plugins: [new monthSelectPlugin({ shorthand: true, dateFormat: 'Y-m', altFormat: 'F Y' })],
+        static: true
+      }
     };
+  },
+  watch: {
+    mesAnoDate(newVal) {
+      const d = Array.isArray(newVal) ? newVal[0] : newVal;
+      if (d instanceof Date && !isNaN(d)) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        this.mesAno = `${yyyy}-${mm}`;
+      } else {
+        this.mesAno = '';
+      }
+    }
   },
   mounted() {
     this.bootstrap();
+    if (this.mesAno) {
+      const [y, m] = this.mesAno.split('-');
+      this.mesAnoDate = new Date(Number(y), Number(m) - 1, 1);
+    }
   },
   methods: {
     async bootstrap() {
@@ -254,6 +293,7 @@ export default {
       this.servicoId = '';
       this.usuarioId = '';
       this.mesAno = '';
+      this.mesAnoDate = null;
       this.page = 1;
       this.fetchItens();
     },
@@ -266,7 +306,7 @@ export default {
         });
         const url = URL.createObjectURL(new Blob([res.data]));
         const a = document.createElement('a');
-        a.href = url; a.download = 'agendamentos.xlsx'; a.click();
+        a.href = url; a.download = this.buildExportFileName('xlsx'); a.click();
         URL.revokeObjectURL(url);
       } finally {
         this.exporting = false; this.exportingType = '';
@@ -281,11 +321,20 @@ export default {
         });
         const url = URL.createObjectURL(new Blob([res.data]));
         const a = document.createElement('a');
-        a.href = url; a.download = 'agendamentos.pdf'; a.click();
+        a.href = url; a.download = this.buildExportFileName('pdf'); a.click();
         URL.revokeObjectURL(url);
       } finally {
         this.exporting = false; this.exportingType = '';
       }
+    },
+    buildExportFileName(ext) {
+      const parts = ['agendamentos'];
+      if (this.mesAno) parts.push(this.mesAno);
+      if (this.servicoId) parts.push(`serv-${this.servicoId}`);
+      if (this.usuarioId) parts.push(`cli-${this.usuarioId}`);
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+      return `${parts.join('_')}_${stamp}.${ext}`;
     },
   },
 };
