@@ -71,7 +71,6 @@
 </template>
 
 <script>
-// Helper de notificação sem depender do bundle do sweetalert2
 function notify (opts = {}) {
   try {
     if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
@@ -80,7 +79,6 @@ function notify (opts = {}) {
   } catch (e) {
     // ignore
   }
-  // Fallback simples
   const title = opts.title || '';
   const text = opts.text || '';
   const msg = [title, text].filter(Boolean).join('\n');
