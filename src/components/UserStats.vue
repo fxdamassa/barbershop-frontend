@@ -27,10 +27,7 @@
       <!-- Tabela -->
       <div class="bg-white p-4 rounded shadow">
         <h3 class="text-center font-semibold mb-2">Seus Agendamentos</h3>
-        <table
-            v-if="Array.isArray(agendamentosDetalhados) && agendamentosDetalhados.length"
-            class="w-full table-auto mt-2"
-        >
+        <table v-if="Array.isArray(agendamentosDetalhados) && agendamentosDetalhados.length" class="w-full table-auto mt-2">
           <thead>
           <tr class="bg-gray-200">
             <th class="px-4 py-2">Data</th>
@@ -52,7 +49,7 @@
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a2 2 0 00-2-2H9a2 2 0 00-2 2m12 0H5"/>
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a2 2 0 00-2-2H9a2 2 0 00-2 2m12 0H5" />
                 </svg>
               </button>
             </td>
@@ -90,29 +87,35 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
-// Helpers sem dependência do pacote sweetalert2
-const notify = ({ icon = 'info', title = '', text = '' } = {}) => {
-  if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
-    window.Swal.fire({ icon, title, text });
-  } else {
-    const msg = [title, text].filter(Boolean).join('\n');
-    // fallback simples
-    if (icon === 'error') alert(`Erro\n${msg}`);
-    else if (icon === 'warning') alert(`Aviso\n${msg}`);
-    else alert(msg || 'OK');
-  }
-};
+// Helpers de notificação/confirm sem depender do bundle do sweetalert2
+function notify (opts = {}) {
+  try {
+    if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
+      return window.Swal.fire(opts);
+    }
+  } catch (e) {}
+  const title = opts.title || '';
+  const text = opts.text || '';
+  const msg = [title, text].filter(Boolean).join('\n');
+  if (opts.icon === 'error') console.error('❌', title, text);
+  else if (opts.icon === 'warning') console.warn('⚠️', title, text);
+  else console.log('ℹ️', title, text);
+  if (typeof window !== 'undefined' && window.alert) window.alert(msg || 'Ação executada.');
+}
 
-const confirmDialog = ({ title = 'Confirma?', text = '', icon = 'warning', confirmButtonText = 'Confirmar', cancelButtonText = 'Cancelar' } = {}) => {
-  if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
-    return window.Swal.fire({
-      title, text, icon, showCancelButton: true, confirmButtonText, cancelButtonText
-    });
-  }
-  // fallback nativo
-  const ok = window.confirm([title, text].filter(Boolean).join('\n'));
-  return Promise.resolve({ isConfirmed: ok });
-};
+async function confirmDialog({ title = 'Confirmar', text = 'Deseja continuar?', confirmButtonText = 'OK', cancelButtonText = 'Cancelar', icon = 'question' } = {}) {
+  try {
+    if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
+      const ret = await window.Swal.fire({
+        title, text, icon,
+        showCancelButton: true,
+        confirmButtonText, cancelButtonText
+      });
+      return !!ret.isConfirmed;
+    }
+  } catch (e) {}
+  return typeof window !== 'undefined' ? window.confirm(`${title}\n${text}`) : true;
+}
 
 export default {
   components: { BarChart },
@@ -130,9 +133,7 @@ export default {
   mounted() {
     this.initAnosDisponiveis();
     this.selectedYear = this.anosDisponiveis[0];
-    this.fetchServicos().then(() => {
-      this.fetchEstatisticas();
-    });
+    this.fetchServicos().then(() => this.fetchEstatisticas());
   },
   watch: {
     selectedYear() {
@@ -165,50 +166,40 @@ export default {
         const data = await res.json();
 
         const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
         this.barLabels = Array.isArray(data.agendamentosPorMes)
-            ? data.agendamentosPorMes.map(item => meses[item.mes - 1])
+            ? data.agendamentosPorMes.map(i => meses[i.mes - 1])
             : [];
-
         this.barValues = Array.isArray(data.agendamentosPorMes)
-            ? data.agendamentosPorMes.map(item => item.total)
+            ? data.agendamentosPorMes.map(i => i.total)
             : [];
-
         this.agendamentosDetalhados = data.agendamentosDetalhados || [];
-        this.pagination = data.pagination || {
-          current_page: 1,
-          last_page: 1,
-          per_page: 10,
-          total: 0
-        };
+        this.pagination = data.pagination || { current_page: 1, last_page: 1, per_page: 10, total: 0 };
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
       }
     },
     async excluirAgendamento(id) {
-      const result = await confirmDialog({
+      const ok = await confirmDialog({
         title: 'Tem certeza?',
         text: 'Você deseja excluir este agendamento?',
         icon: 'warning',
         confirmButtonText: 'Sim, excluir!',
         cancelButtonText: 'Cancelar'
       });
-
-      if (!result.isConfirmed) return;
+      if (!ok) return;
 
       const token = localStorage.getItem('auth_token');
       try {
         const res = await fetch(`${process.env.VUE_APP_API_URL}/agendar-corte/${id}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-
         if (res.ok) {
-          notify({ icon: 'success', title: 'Excluído!', text: data.message || 'Agendamento removido.' });
-          this.fetchEstatisticas();
+          notify({ icon: 'success', title: 'Excluído!', text: data.message || 'Agendamento excluído.' });
+          this.fetchEstatisticas(this.pagination?.current_page || 1);
         } else {
-          notify({ icon: 'error', title: 'Erro', text: data.error || data.message || 'Erro ao excluir.' });
+          notify({ icon: 'error', title: 'Erro', text: data.error || 'Erro ao excluir' });
         }
       } catch (error) {
         notify({ icon: 'error', title: 'Erro', text: 'Erro ao conectar ao servidor' });
