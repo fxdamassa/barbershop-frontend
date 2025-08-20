@@ -8,26 +8,34 @@
         </div>
 
         <nav class="flex gap-2">
-          <!-- ir para o painel normal (usuário) -->
-          <!-- Se sua rota do painel de usuário tiver outro name, ajuste abaixo -->
-          <button @click="goUser"
-                  class="px-3 py-2 rounded bg-white/10 hover:bg-white/20">
+          <!-- Ir para o painel normal do usuário -->
+          <button
+              @click="goUser"
+              class="px-3 py-2 rounded bg-white/10 hover:bg-white/20"
+          >
             Painel do Usuário
           </button>
 
-          <router-link :to="{ name:'AdminAgendamentos' }"
-                       class="px-3 py-2 rounded bg-white/10 hover:bg-white/20">
+          <router-link
+              :to="{ name:'AdminAgendamentos' }"
+              class="px-3 py-2 rounded bg-white/10 hover:bg-white/20"
+          >
             Agendamentos
           </router-link>
 
-          <router-link :to="{ name:'AdminServicos' }"
-                       class="px-3 py-2 rounded bg-white/10 hover:bg-white/20">
+          <router-link
+              :to="{ name:'AdminServicos' }"
+              class="px-3 py-2 rounded bg-white/10 hover:bg-white/20"
+          >
             Serviços
           </router-link>
 
-          <!-- logout -->
-          <button @click="logout"
-                  class="px-3 py-2 rounded bg-red-500 hover:bg-red-600">
+          <!-- Logout -->
+          <button
+              @click="logout"
+              class="px-3 py-2 rounded bg-red-500 hover:bg-red-600"
+              title="Sair"
+          >
             Sair
           </button>
         </nav>
@@ -48,22 +56,26 @@ export default {
   methods: {
     async logout() {
       try {
-
+        // Se existir endpoint para invalidar o token
         await api.post('/logout');
       } catch (e) {
-        console.warn('logout local');
+        // silencioso
       } finally {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_role');
         localStorage.removeItem('user_name');
-        // ajuste o name/path da sua rota de login
-        this.$router.push({ name: 'Login' }).catch(() => {});
+        // Redireciona por PATH para evitar depender do name da rota
+        this.$router.push('/').catch(() => {});
       }
     },
     goUser() {
-
-      this.$router.push({ name: 'UserDashboard' }).catch(() => {});
+      // Evita depender de 'name' de rota; usa path do painel de usuário
+      this.$router.push('/dashboard').catch(() => {});
     }
   }
 };
 </script>
+
+<style scoped>
+/* estilos via classes utilitárias do Tailwind */
+</style>
