@@ -1,0 +1,14 @@
+[build]
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+  # opcional: você pode definir aqui também, mas prefira setar no painel para esconder do repo:
+  # VUE_APP_API_URL = "https://backend-barbershop-xxxxx.koyeb.app"
+
+# SPA fallback (equivalente ao _redirects)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
