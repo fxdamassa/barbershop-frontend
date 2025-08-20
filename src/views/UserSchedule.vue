@@ -71,25 +71,43 @@
 </template>
 
 <script>
-import Swal from "sweetalert2";
+// Helper de notificação sem depender do bundle do sweetalert2
+function notify (opts = {}) {
+  try {
+    if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
+      return window.Swal.fire(opts);
+    }
+  } catch (e) {
+    // ignore
+  }
+  // Fallback simples
+  const title = opts.title || '';
+  const text = opts.text || '';
+  const msg = [title, text].filter(Boolean).join('\n');
+  if (opts.icon === 'error') console.error('❌', title, text);
+  else if (opts.icon === 'warning') console.warn('⚠️', title, text);
+  else console.log('ℹ️', title, text);
+  if (typeof window !== 'undefined' && window.alert) window.alert(msg || 'Ação executada.');
+}
+
 const API_URL = process.env.VUE_APP_API_URL;
 
 export default {
-  name: "UserSchedule",
+  name: 'UserSchedule',
   data() {
     return {
       selectedDate: null,
-      selectedTime: "",
-      selectedService: "",
+      selectedTime: '',
+      selectedService: '',
       servicos: [],
       bookedTimes: [],
       availableTimes: [],
-      allTimes: this.generateTimeSlots("07:00", "18:00", 30),
+      allTimes: this.generateTimeSlots('07:00', '18:00', 30),
       calendarAttributes: [
         {
-          key: "disable-sundays",
+          key: 'disable-sundays',
           dates: { weekdays: [0] },
-          popover: { label: "Domingos estão indisponíveis" },
+          popover: { label: 'Domingos estão indisponíveis' },
           customData: { disabled: true },
         },
       ],
@@ -99,44 +117,36 @@ export default {
     formattedDate() {
       if (this.selectedDate) {
         const date = new Date(this.selectedDate);
-        return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
-            .toString()
-            .padStart(2, "0")}/${date.getFullYear()}`;
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
       }
       return null;
     },
   },
-
   mounted() {
-    console.log("Chamando fetchServicos()");
     this.fetchServicos();
   },
-
   methods: {
     async fetchServicos() {
-      const token = localStorage.getItem("auth_token");
+      const token = localStorage.getItem('auth_token');
       try {
         const res = await fetch(`${API_URL}/agendar-corte/servicos`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         const data = await res.json();
-        console.log("Serviços recebidos:", data);
         this.servicos = data.servicos || [];
       } catch (error) {
-        console.error("Erro ao buscar serviços:", error);
+        console.error('Erro ao buscar serviços:', error);
+        notify({ icon: 'error', title: 'Erro', text: 'Não foi possível carregar os serviços.' });
       }
     },
+
     generateTimeSlots(start, end, interval) {
       const times = [];
       let currentTime = new Date(`1970-01-01T${start}:00`);
       const endTime = new Date(`1970-01-01T${end}:00`);
-
       while (currentTime <= endTime) {
-        const hours = currentTime.getHours().toString().padStart(2, "0");
-        const minutes = currentTime.getMinutes().toString().padStart(2, "0");
+        const hours = String(currentTime.getHours()).padStart(2, '0');
+        const minutes = String(currentTime.getMinutes()).padStart(2, '0');
         times.push(`${hours}:${minutes}`);
         currentTime.setMinutes(currentTime.getMinutes() + interval);
       }
@@ -145,25 +155,24 @@ export default {
 
     validateSelectedTime() {
       if (this.bookedTimes.includes(this.selectedTime)) {
-        Swal.fire({
-          icon: "warning",
-          title: "Horário Indisponível",
-          text: "Este horário já está agendado. Por favor, escolha outro.",
+        notify({
+          icon: 'warning',
+          title: 'Horário Indisponível',
+          text: 'Este horário já está agendado. Por favor, escolha outro.',
         });
-        this.selectedTime = "";
+        this.selectedTime = '';
       }
     },
 
     async onDayClick(day) {
       if (day.date.getDay() === 0) {
-        Swal.fire({
-          icon: "error",
-          title: "Domingo Indisponível",
-          text: "Domingos não estão disponíveis para agendamento.",
+        notify({
+          icon: 'error',
+          title: 'Domingo Indisponível',
+          text: 'Domingos não estão disponíveis para agendamento.',
         });
         return;
       }
-
       this.selectedDate = day.date;
       await this.fetchBookedTimes();
     },
@@ -171,75 +180,67 @@ export default {
     async fetchBookedTimes() {
       if (!this.selectedDate) return;
 
-      this.selectedTime = "";
-
-      const token = localStorage.getItem("auth_token");
+      this.selectedTime = '';
+      const token = localStorage.getItem('auth_token');
       if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "Erro de Autenticação",
-          text: "Usuário não autenticado. Por favor, faça login novamente.",
+        notify({
+          icon: 'error',
+          title: 'Erro de Autenticação',
+          text: 'Usuário não autenticado. Por favor, faça login novamente.',
         });
         return;
       }
 
-      const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
+      const formattedDate = new Date(this.selectedDate).toISOString().split('T')[0];
 
       try {
         const response = await fetch(`${API_URL}/agendar-corte/${formattedDate}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         const data = await response.json();
         if (response.ok) {
           this.bookedTimes = data.bookedTimes || [];
         } else {
-          Swal.fire({
-            icon: "error",
-            title: "Erro",
-            text: data.message || "Erro ao buscar horários.",
-          });
+          notify({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao buscar horários.' });
         }
       } catch (error) {
-        console.error("Erro ao buscar horários agendados:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Erro",
-          text: "Erro ao conectar com o servidor. Tente novamente mais tarde.",
+        console.error('Erro ao buscar horários agendados:', error);
+        notify({
+          icon: 'error',
+          title: 'Erro',
+          text: 'Erro ao conectar com o servidor. Tente novamente mais tarde.',
         });
       }
     },
 
     async scheduleEvent() {
-      if (!this.selectedDate || !this.selectedTime) {
-        Swal.fire({
-          icon: "warning",
-          title: "Dados Incompletos",
-          text: "Por favor, selecione uma data e um horário.",
+      if (!this.selectedDate || !this.selectedTime || !this.selectedService) {
+        notify({
+          icon: 'warning',
+          title: 'Dados Incompletos',
+          text: 'Por favor, selecione data, horário e serviço.',
         });
         return;
       }
 
-      const token = localStorage.getItem("auth_token");
+      const token = localStorage.getItem('auth_token');
       if (!token) {
-        Swal.fire({
-          icon: "error",
-          title: "Erro de Autenticação",
-          text: "Usuário não autenticado. Por favor, faça login novamente.",
+        notify({
+          icon: 'error',
+          title: 'Erro de Autenticação',
+          text: 'Usuário não autenticado. Por favor, faça login novamente.',
         });
         return;
       }
 
-      const formattedDate = new Date(this.selectedDate).toISOString().split("T")[0];
+      const formattedDate = new Date(this.selectedDate).toISOString().split('T')[0];
 
       try {
         const response = await fetch(`${API_URL}/agendar-corte`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
@@ -253,51 +254,39 @@ export default {
 
         if (response.ok) {
           this.bookedTimes.push(this.selectedTime);
-          this.availableTimes = this.availableTimes.filter(time => time !== this.selectedTime);
-          this.selectedTime = "";
+          this.availableTimes = this.availableTimes.filter((t) => t !== this.selectedTime);
+          this.selectedTime = '';
 
-          Swal.fire({
-            icon: "success",
-            title: "Sucesso",
-            text: data.message || "Agendamento salvo com sucesso!",
+          notify({
+            icon: 'success',
+            title: 'Sucesso',
+            text: data.message || 'Agendamento salvo com sucesso!',
           });
         } else {
           if (response.status === 422 && data.errors) {
             const errorMsg = Object.values(data.errors)[0];
-            Swal.fire({
-              icon: "error",
-              title: "Erro de Validação",
-              text: errorMsg || "Dados inválidos.",
-            });
+            notify({ icon: 'error', title: 'Erro de Validação', text: errorMsg || 'Dados inválidos.' });
           } else {
-            Swal.fire({
-              icon: "error",
-              title: "Erro",
-              text: data.message || "Erro ao salvar o agendamento.",
-            });
+            notify({ icon: 'error', title: 'Erro', text: data.message || 'Erro ao salvar o agendamento.' });
           }
         }
       } catch (error) {
-        console.error("Erro ao salvar agendamento:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Erro",
-          text: "Erro ao conectar com o servidor.",
-        });
+        console.error('Erro ao salvar agendamento:', error);
+        notify({ icon: 'error', title: 'Erro', text: 'Erro ao conectar com o servidor.' });
       }
     },
   },
   watch: {
     selectedTime(newVal) {
       if (this.bookedTimes.includes(newVal)) {
-        this.selectedTime = "";
-        Swal.fire({
-          icon: "warning",
-          title: "Horário Indisponível",
-          text: "Esse horário já está agendado. Por favor, selecione outro.",
+        this.selectedTime = '';
+        notify({
+          icon: 'warning',
+          title: 'Horário Indisponível',
+          text: 'Esse horário já está agendado. Por favor, selecione outro.',
         });
       }
-    }
+    },
   },
 };
 </script>
