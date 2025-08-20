@@ -93,7 +93,10 @@ function notify (opts = {}) {
     if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
       return window.Swal.fire(opts);
     }
-  } catch (e) {}
+  } catch (e) {
+    // evita bloco vazio para ESLint
+    if (process.env.NODE_ENV !== 'production') console.debug('[notify] fallback:', e);
+  }
   const title = opts.title || '';
   const text = opts.text || '';
   const msg = [title, text].filter(Boolean).join('\n');
@@ -103,7 +106,13 @@ function notify (opts = {}) {
   if (typeof window !== 'undefined' && window.alert) window.alert(msg || 'Ação executada.');
 }
 
-async function confirmDialog({ title = 'Confirmar', text = 'Deseja continuar?', confirmButtonText = 'OK', cancelButtonText = 'Cancelar', icon = 'question' } = {}) {
+async function confirmDialog({
+                               title = 'Confirmar',
+                               text = 'Deseja continuar?',
+                               confirmButtonText = 'OK',
+                               cancelButtonText = 'Cancelar',
+                               icon = 'question'
+                             } = {}) {
   try {
     if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
       const ret = await window.Swal.fire({
@@ -113,7 +122,10 @@ async function confirmDialog({ title = 'Confirmar', text = 'Deseja continuar?', 
       });
       return !!ret.isConfirmed;
     }
-  } catch (e) {}
+  } catch (e) {
+    // evita bloco vazio para ESLint
+    if (process.env.NODE_ENV !== 'production') console.debug('[confirmDialog] fallback:', e);
+  }
   return typeof window !== 'undefined' ? window.confirm(`${title}\n${text}`) : true;
 }
 
