@@ -87,7 +87,6 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
-// Helpers de notificação/confirm sem depender do bundle do sweetalert2
 function notify (opts = {}) {
   try {
     if (typeof window !== 'undefined' && window.Swal && typeof window.Swal.fire === 'function') {
